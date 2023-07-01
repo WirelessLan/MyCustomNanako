@@ -1,0 +1,11 @@
+{
+  "name": "mycustomnanako",
+  "version-string": "0.1.0",
+  "license": "MIT",
+  "dependencies": [
+    "boost-stl-interfaces",
+    "fmt",
+    "mmio",
+    "spdlog"
+  ]
+}

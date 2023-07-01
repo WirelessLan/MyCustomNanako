@@ -1,0 +1,14 @@
+set(SOURCES
+	src/Configs.h
+	src/Configs.cpp
+	src/HeadParts.h
+	src/HeadParts.cpp
+	src/Hooks.h
+	src/Hooks.cpp
+	src/Races.h
+	src/Races.cpp
+	src/Utils.h
+	src/Utils.cpp
+	src/PCH.h
+	src/main.cpp
+)
