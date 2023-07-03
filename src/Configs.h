@@ -3,8 +3,6 @@
 #include <set>
 
 namespace Configs {
-	extern std::set<RE::TESRace*> g_validRacesSet;
-
 	struct FacialBoneRegion {
 		std::string AssociatedMorphGroupName;
 		std::string VisibleName;
@@ -18,7 +16,7 @@ namespace Configs {
 		std::set<RE::BGSHeadPart*> HeadPartSet;
 	};
 
-	extern std::map<std::uint32_t, std::vector<MorphPreset>> g_morphGroupsMap;
+	extern std::map<RE::TESRace*, std::map<std::uint32_t, std::vector<MorphPreset>>> g_raceMorphGroupsMap;
 
 	extern std::map<std::uint32_t, std::set<RE::BGSHeadPart*>> g_headPartMap;
 

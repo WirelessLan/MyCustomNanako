@@ -3,13 +3,17 @@
 #include "Configs.h"
 
 namespace Races {
-	void UpdateRaceFacialBoneRegionNames() {
-		for (const auto& validRace : Configs::g_validRacesSet) {
-			for (std::size_t sex = 0; sex < 2; sex++) {
-				if (!validRace->faceRelatedData[sex]->facialBoneRegions)
-					continue;
+	enum Sex : std::uint32_t {
+		kMale = 0,
+		kFemale = 1
+	};
 
-				for (auto faceBoneRegion : *validRace->faceRelatedData[sex]->facialBoneRegions) {
+	void UpdateRaces() {
+		for (const auto& raceMorphGroups : Configs::g_raceMorphGroupsMap) {
+			auto validRace = raceMorphGroups.first;
+
+			if (validRace->faceRelatedData[Sex::kFemale]->facialBoneRegions) {
+				for (auto faceBoneRegion : *validRace->faceRelatedData[Sex::kFemale]->facialBoneRegions) {
 					for (const auto& indexRegionPair : Configs::g_regionNamesMap) {
 						if (faceBoneRegion->id != indexRegionPair.first)
 							continue;
@@ -19,21 +23,14 @@ namespace Races {
 					}
 				}
 			}
-		}
-	}
 
-	void UpdateRaceMorphGroups() {
-		for (const auto& validRace : Configs::g_validRacesSet) {
-			for (std::size_t sex = 0; sex < 2; sex++) {
-				if (!validRace->faceRelatedData[sex]->morphGroups)
-					continue;
-
-				for (const auto& morphPresets : Configs::g_morphGroupsMap) {
+			if (validRace->faceRelatedData[Sex::kFemale]->morphGroups) {
+				for (const auto& morphPresets : raceMorphGroups.second) {
 					auto it = Configs::g_regionNamesMap.find(morphPresets.first);
 					if (it == Configs::g_regionNamesMap.end())
 						continue;
 
-					for (auto group : *validRace->faceRelatedData[sex]->morphGroups) {
+					for (auto group : *validRace->faceRelatedData[Sex::kFemale]->morphGroups) {
 						if (group->name != it->second.AssociatedMorphGroupName)
 							continue;
 
@@ -54,7 +51,6 @@ namespace Races {
 	}
 
 	void Update() {
-		UpdateRaceFacialBoneRegionNames();
-		UpdateRaceMorphGroups();
+		UpdateRaces();
 	}
 }

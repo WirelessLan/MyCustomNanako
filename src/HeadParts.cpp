@@ -35,24 +35,16 @@ namespace HeadParts {
 
 	std::set<RE::BGSHeadPart*> g_originalHDPTSet;
 
-	bool IsValidRace(RE::TESRace* a_race) {
-		if (!a_race)
-			return false;
-
-		for (RE::TESRace* races : Configs::g_validRacesSet) {
-			if (races == a_race)
-				return true;
-		}
-
-		return false;
-	}
-
-	std::set<RE::BGSHeadPart*> GetHeadParts(std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
-		auto it = Configs::g_morphGroupsMap.find(a_regionIndex);
-		if (it == Configs::g_morphGroupsMap.end())
+	std::set<RE::BGSHeadPart*> GetHeadParts(RE::TESRace* a_race, std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
+		auto race_it = Configs::g_raceMorphGroupsMap.find(a_race);
+		if (race_it == Configs::g_raceMorphGroupsMap.end())
 			return std::set<RE::BGSHeadPart*>();
 
-		return it->second[a_selectedIndex].HeadPartSet;
+		auto region_it = race_it->second.find(a_regionIndex);
+		if (region_it == race_it->second.end())
+			return std::set<RE::BGSHeadPart*>();
+
+		return region_it->second[a_selectedIndex].HeadPartSet;
 	}
 
 	void AddHeadPart(RE::TESNPC* a_npc, RE::BGSHeadPart* a_hdpt) {
@@ -83,10 +75,7 @@ namespace HeadParts {
 		if (!npc)
 			return;
 
-		if (!HeadParts::IsValidRace(npc->formRace))
-			return;
-
-		std::set<RE::BGSHeadPart*> headParts = HeadParts::GetHeadParts(a_regionIndex, a_selectedIndex);
+		std::set<RE::BGSHeadPart*> headParts = HeadParts::GetHeadParts(npc->formRace, a_regionIndex, a_selectedIndex);
 		if (headParts.empty())
 			return;
 
@@ -125,9 +114,6 @@ namespace HeadParts {
 
 		RE::TESNPC* npc = g_characterCreation->npc;
 		if (!npc)
-			return;
-
-		if (!HeadParts::IsValidRace(npc->formRace))
 			return;
 
 		if (g_originalHDPTSet.empty())

@@ -6,13 +6,11 @@
 #include "Utils.h"
 
 namespace Configs {
-	const std::string g_validRacesConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_ValidRaces.txt", Version::PROJECT);
 	const std::string g_regionNamesConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_RegionNames.txt", Version::PROJECT);
 	const std::string g_morphGroupsConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_MorphGroups", Version::PROJECT);
 
-	std::set<RE::TESRace*> g_validRacesSet;
 	std::map<std::uint32_t, FacialBoneRegion> g_regionNamesMap;
-	std::map<std::uint32_t, std::vector<MorphPreset>> g_morphGroupsMap;
+	std::map<RE::TESRace*, std::map<std::uint32_t, std::vector<MorphPreset>>> g_raceMorphGroupsMap;
 	std::map<std::uint32_t, std::set<RE::BGSHeadPart*>> g_headPartMap;
 
 	std::uint8_t GetChar(const std::string& a_line, std::uint32_t& a_index) {
@@ -53,48 +51,6 @@ namespace Configs {
 		if (a_line.empty() || a_line[0] == '#')
 			return true;
 		return false;
-	}
-
-	void ReadValidRacesConfig() {
-		std::ifstream file{ g_validRacesConfigPath };
-		if (!file.is_open()) {
-			logger::error("Cannot read the config file: {}", g_validRacesConfigPath);
-			return;
-		}
-
-		logger::info("Reading the config file: {}", g_validRacesConfigPath);
-
-		std::string line;
-		std::uint32_t lineNum = 0;
-		while (GetLine(file, line)) {
-			lineNum++;
-
-			if (EmptyOrComment(line))
-				continue;
-
-			std::uint32_t lineIndex = 0;
-			std::string raceFormStr;
-
-			raceFormStr = GetNextData(line, lineIndex, 0);
-			if (raceFormStr.empty()) {
-				logger::error("Line {}: Cannot read the Race: {}", lineNum, line);
-				continue;
-			}
-
-			RE::TESForm* raceForm = Utils::GetFormFromString(raceFormStr);
-			if (!raceForm) {
-				logger::error("Line {}: '{}' is an invalid form: {}", lineNum, raceFormStr, line);
-				continue;
-			}
-
-			RE::TESRace* race = raceForm->As<RE::TESRace>();
-			if (!race) {
-				logger::error("Line {}: '{}' is not a valid Race: {}", lineNum, raceFormStr, line);
-				continue;
-			}
-
-			g_validRacesSet.insert(race);
-		}
 	}
 
 	void ReadRegionNamesConfig() {
@@ -187,12 +143,17 @@ namespace Configs {
 					continue;
 
 				std::uint32_t lineIndex = 0;
-				std::string facialBoneRegionIndexStr, morphPresetIndexStr, morphPresetName, headPartListStart;
+				std::string facialBoneRegionIndexStr, raceStr, morphPresetIndexStr, morphPresetName, headPartListStart;
 
 				facialBoneRegionIndexStr = GetNextData(line, lineIndex, ':');
 				if (facialBoneRegionIndexStr.empty()) {
-					logger::error("Line {}: Cannot read the FacialBoneRegionIndex : {}", lineNum, line);
+					logger::error("Line {}: Cannot read the FacialBoneRegionIndex: {}", lineNum, line);
 					continue;
+				}
+
+				raceStr = GetNextData(line, lineIndex, ',');
+				if (raceStr.empty()) {
+					logger::error("Line {}: Cannot read the Race: {}", lineNum, line);
 				}
 
 				morphPresetIndexStr = GetNextData(line, lineIndex, ',');
@@ -219,6 +180,18 @@ namespace Configs {
 				}
 				catch (...) {
 					logger::error("Line {}: Failed to parse a FacialBoneRegionIndex: {}", lineNum, line);
+					continue;
+				}
+
+				RE::TESForm* raceForm = Utils::GetFormFromString(raceStr);
+				if (!raceForm) {
+					logger::error("Line {}: '{}' is an invalid form: {}", lineNum, raceStr, line);
+					continue;
+				}
+
+				RE::TESRace* race = raceForm->As<RE::TESRace>();
+				if (!race) {
+					logger::error("Line {}: '{}' is not a valid Race: {}", lineNum, raceStr, line);
 					continue;
 				}
 
@@ -259,20 +232,14 @@ namespace Configs {
 					headPartList.push_back(headPart);
 				}
 
-				auto result = g_morphGroupsMap.insert(std::make_pair(facialBoneRegionIndex, std::vector<MorphPreset>()));
-				auto it = result.first;
+				auto& morphList = g_raceMorphGroupsMap[race][facialBoneRegionIndex];
 
 				bool found = false;
-				for (MorphPreset& preset : it->second) {
-					if (preset.Index != morphPresetIndex)
-						continue;
-
-					found = true;
-					preset.Name = morphPresetName;
-					for (auto headPart : headPartList)
-						preset.HeadPartSet.insert(headPart);
-
-					break;
+				for (MorphPreset& preset : morphList) {
+					if (preset.Index == morphPresetIndex) {
+						found = true;
+						break;
+					}
 				}
 
 				if (found) {
@@ -286,30 +253,17 @@ namespace Configs {
 				for (auto headPart : headPartList)
 					newPreset.HeadPartSet.insert(headPart);
 
-				it->second.push_back(newPreset);
+				morphList.push_back(newPreset);
+
+				auto& regionHeadPartSet = g_headPartMap[facialBoneRegionIndex];
+				for (auto headPart : headPartList)
+					regionHeadPartSet.insert(headPart);
 			}
 		}
 	}
 
-	void SetHeadPartMap() {
-		for (const auto& indexRegionPair : g_regionNamesMap) {
-			auto it = g_morphGroupsMap.find(indexRegionPair.first);
-			if (it == g_morphGroupsMap.end())
-				continue;
-
-			auto result = g_headPartMap.insert(std::make_pair(indexRegionPair.first, std::set<RE::BGSHeadPart*>()));
-			auto hdptMap_iter = result.first;
-
-			for (const auto& morphPreset : it->second)
-				for (const auto& headPart : morphPreset.HeadPartSet)
-					hdptMap_iter->second.insert(headPart);
-		}
-	}
-
 	void ReadConfigs() {
-		ReadValidRacesConfig();
 		ReadRegionNamesConfig();
 		ReadMorphGroupsConfig();
-		SetHeadPartMap();
 	}
 }
