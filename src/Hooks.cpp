@@ -13,7 +13,7 @@ namespace Hooks {
 		std::uint64_t optionID = reinterpret_cast<std::uintptr_t>(a_params.userData);
 
 		if (optionID == 0x7) {
-			if (a_params.argCount >= 2 && a_params.args[0].GetType() == RE::Scaleform::GFx::Value::ValueType::kUInt)
+			if (a_params.argCount >= 2 && a_params.args[1].GetType() == RE::Scaleform::GFx::Value::ValueType::kUInt)
 				HeadParts::ChangeHeadPart(g_lastRegionIndex, a_params.args[1].GetUInt());
 		}
 		else if (optionID == 0x18) {
