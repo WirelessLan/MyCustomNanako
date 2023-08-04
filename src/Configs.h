@@ -12,7 +12,6 @@ namespace Configs {
 
 	struct MorphPreset {
 		std::string Name;
-		std::uint32_t Index;
 		std::set<RE::BGSHeadPart*> HeadPartSet;
 	};
 

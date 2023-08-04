@@ -25,6 +25,8 @@ namespace Races {
 			}
 
 			if (validRace->faceRelatedData[Sex::kFemale]->morphGroups) {
+				std::uint32_t groupID = 1;
+
 				for (const auto& morphPresets : raceMorphGroups.second) {
 					auto it = Configs::g_regionNamesMap.find(morphPresets.first);
 					if (it == Configs::g_regionNamesMap.end())
@@ -36,14 +38,18 @@ namespace Races {
 
 						group->presets.clear();
 
+						std::uint32_t presetID = (groupID << 24) + 1;
+
 						for (const auto& morphPreset : morphPresets.second) {
 							RE::BGSCharacterMorph::Preset newPreset{};
-							newPreset.id = morphPreset.Index;
+							newPreset.id = presetID++;
 							newPreset.name = morphPreset.Name;
 							newPreset.flags = 1;
 
 							group->presets.push_back(newPreset);
 						}
+
+						groupID++;
 					}
 				}
 			}

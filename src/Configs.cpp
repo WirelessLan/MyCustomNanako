@@ -143,7 +143,7 @@ namespace Configs {
 					continue;
 
 				std::uint32_t lineIndex = 0;
-				std::string facialBoneRegionIndexStr, raceStr, morphPresetIndexStr, morphPresetName, headPartListStart;
+				std::string facialBoneRegionIndexStr, raceStr, morphPresetName, headPartListStart;
 
 				facialBoneRegionIndexStr = GetNextData(line, lineIndex, ':');
 				if (facialBoneRegionIndexStr.empty()) {
@@ -154,12 +154,6 @@ namespace Configs {
 				raceStr = GetNextData(line, lineIndex, ',');
 				if (raceStr.empty()) {
 					logger::error("Line {}: Cannot read the Race: {}", lineNum, line);
-				}
-
-				morphPresetIndexStr = GetNextData(line, lineIndex, ',');
-				if (morphPresetIndexStr.empty()) {
-					logger::error("Line {}: Cannot read the MorphPresetIndex: {}", lineNum, line);
-					continue;
 				}
 
 				morphPresetName = GetNextData(line, lineIndex, ',');
@@ -195,15 +189,6 @@ namespace Configs {
 					continue;
 				}
 
-				std::uint32_t morphPresetIndex;
-				try {
-					morphPresetIndex = std::stoul(morphPresetIndexStr, nullptr, 16);
-				}
-				catch (...) {
-					logger::error("Line {}: Failed to parse a MorphPresetIndex: {}", lineNum, line.c_str());
-					continue;
-				}
-
 				std::vector<RE::BGSHeadPart*> headPartList;
 				while (GetLine(file, line)) {
 					lineNum++;
@@ -234,21 +219,7 @@ namespace Configs {
 
 				auto& morphList = g_raceMorphGroupsMap[race][facialBoneRegionIndex];
 
-				bool found = false;
-				for (MorphPreset& preset : morphList) {
-					if (preset.Index == morphPresetIndex) {
-						found = true;
-						break;
-					}
-				}
-
-				if (found) {
-					logger::error("Preset index {:08X} already exists in FacialBoneRegion {:08X}", morphPresetIndex, facialBoneRegionIndex);
-					continue;
-				}
-
 				MorphPreset newPreset{};
-				newPreset.Index = morphPresetIndex;
 				newPreset.Name = morphPresetName;
 				for (auto headPart : headPartList)
 					newPreset.HeadPartSet.insert(headPart);
