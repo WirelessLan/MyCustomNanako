@@ -6,10 +6,10 @@
 #include "Utils.h"
 
 namespace Configs {
-	const std::string g_regionNamesConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_RegionNames.txt", Version::PROJECT);
+	const std::string g_regionNamesConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_RegionNames", Version::PROJECT);
 	const std::string g_morphGroupsConfigPath = fmt::format("Data\\F4SE\\Plugins\\{}_MorphGroups", Version::PROJECT);
 
-	std::map<std::uint32_t, FacialBoneRegion> g_regionNamesMap;
+	std::map<RE::TESRace*, std::map<std::uint32_t, FacialBoneRegion>> g_regionNamesMap;
 	std::map<RE::TESRace*, std::map<std::uint32_t, std::vector<MorphPreset>>> g_raceMorphGroupsMap;
 	std::map<std::uint32_t, std::set<RE::BGSHeadPart*>> g_headPartMap;
 
@@ -54,57 +54,94 @@ namespace Configs {
 	}
 
 	void ReadRegionNamesConfig() {
-		std::ifstream file{ g_regionNamesConfigPath };
-		if (!file.is_open()) {
-			logger::error("Cannot read the config file: {}", g_regionNamesConfigPath);
+		if (!std::filesystem::exists(g_regionNamesConfigPath)) {
+			logger::error("Config directory does not exist: {}", g_regionNamesConfigPath);
 			return;
 		}
 
-		logger::info("Reading the config file: {}", g_regionNamesConfigPath);
+		const std::regex filter(".*\\.txt", std::regex_constants::icase);
+		const std::filesystem::directory_iterator dir_iter(g_regionNamesConfigPath);
 
-		std::string line;
-		std::uint32_t lineNum = 0;
-		while (GetLine(file, line)) {
-			lineNum++;
-
-			if (EmptyOrComment(line))
+		for (auto& iter : dir_iter) {
+			if (!std::filesystem::is_regular_file(iter.status()))
 				continue;
 
-			std::uint32_t lineIndex = 0;
-			std::string facialBoneRegionIndexStr, morphGroupName, name;
-
-			facialBoneRegionIndexStr = GetNextData(line, lineIndex, ':');
-			if (facialBoneRegionIndexStr.empty()) {
-				logger::error("Line {}: Cannot read the FacialBoneRegionIndex: {}", lineNum, line);
+			if (!std::regex_match(iter.path().filename().string(), filter))
 				continue;
+
+			std::string filePath = iter.path().string();
+
+			std::ifstream file{ filePath };
+			if (!file.is_open()) {
+				logger::error("Cannot read the config file: {}", filePath);
+				return;
 			}
 
-			morphGroupName = GetNextData(line, lineIndex, ',');
-			if (morphGroupName.empty()) {
-				logger::error("Line {}: Cannot read the MorphGroupName: {}", lineNum, line);
-				continue;
-			}
+			logger::info("Reading the config file: {}", filePath);
 
-			name = GetNextData(line, lineIndex, 0);
-			if (name.empty()) {
-				logger::error("Line {}: Cannot read the Name: {}", lineNum, line);
-				continue;
-			}
+			std::string line;
+			std::uint32_t lineNum = 0;
 
-			std::uint32_t facialBoneRegionIndex;
-			try {
-				facialBoneRegionIndex = std::stoul(facialBoneRegionIndexStr, nullptr, 16);
-			}
-			catch (...) {
-				logger::error("Line {}: Failed to parse a FacialBoneRegionIndex: {}", lineNum, line.c_str());
-				continue;
-			}
+			while (GetLine(file, line)) {
+				lineNum++;
 
-			FacialBoneRegion newRegion{};
-			newRegion.AssociatedMorphGroupName = morphGroupName;
-			newRegion.VisibleName = name;
+				if (EmptyOrComment(line))
+					continue;
 
-			g_regionNamesMap[facialBoneRegionIndex] = newRegion;
+				std::uint32_t lineIndex = 0;
+				std::string facialBoneRegionIndexStr, raceStr, morphGroupName, newGroupName;
+
+				facialBoneRegionIndexStr = GetNextData(line, lineIndex, ':');
+				if (facialBoneRegionIndexStr.empty()) {
+					logger::error("Line {}: Cannot read the FacialBoneRegionIndex: {}", lineNum, line);
+					continue;
+				}
+
+				raceStr = GetNextData(line, lineIndex, ',');
+				if (raceStr.empty()) {
+					logger::error("Line {}: Cannot read the Race: {}", lineNum, line);
+					continue;
+				}
+
+				morphGroupName = GetNextData(line, lineIndex, ',');
+				if (morphGroupName.empty()) {
+					logger::error("Line {}: Cannot read the MorphGroupName: {}", lineNum, line);
+					continue;
+				}
+
+				newGroupName = GetNextData(line, lineIndex, 0);
+				if (newGroupName.empty()) {
+					logger::error("Line {}: Cannot read the NewGroupName: {}", lineNum, line);
+					continue;
+				}
+
+				RE::TESForm* raceForm = Utils::GetFormFromString(raceStr);
+				if (!raceForm) {
+					logger::error("Line {}: '{}' is an invalid form: {}", lineNum, raceStr, line);
+					continue;
+				}
+
+				RE::TESRace* race = raceForm->As<RE::TESRace>();
+				if (!race) {
+					logger::error("Line {}: '{}' is not a valid Race: {}", lineNum, raceStr, line);
+					continue;
+				}
+
+				std::uint32_t facialBoneRegionIndex;
+				try {
+					facialBoneRegionIndex = std::stoul(facialBoneRegionIndexStr, nullptr, 16);
+				}
+				catch (...) {
+					logger::error("Line {}: Failed to parse a FacialBoneRegionIndex: {}", lineNum, line.c_str());
+					continue;
+				}
+
+				FacialBoneRegion newRegion{};
+				newRegion.AssociatedMorphGroupName = morphGroupName;
+				newRegion.VisibleName = newGroupName;
+
+				g_regionNamesMap[race][facialBoneRegionIndex] = newRegion;
+			}
 		}
 	}
 
@@ -136,6 +173,7 @@ namespace Configs {
 
 			std::string line;
 			std::uint32_t lineNum = 0;
+
 			while (GetLine(file, line)) {
 				lineNum++;
 

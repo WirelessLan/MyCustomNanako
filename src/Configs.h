@@ -8,7 +8,7 @@ namespace Configs {
 		std::string VisibleName;
 	};
 
-	extern std::map<std::uint32_t, FacialBoneRegion> g_regionNamesMap;
+	extern std::map<RE::TESRace*, std::map<std::uint32_t, FacialBoneRegion>> g_regionNamesMap;
 
 	struct MorphPreset {
 		std::string Name;

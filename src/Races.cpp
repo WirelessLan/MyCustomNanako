@@ -5,16 +5,20 @@
 namespace Races {
 	enum Sex : std::uint32_t {
 		kMale = 0,
-		kFemale = 1
+		kFemale = 1,
+		kTotal
 	};
 
 	void UpdateRaces() {
-		for (const auto& raceMorphGroups : Configs::g_raceMorphGroupsMap) {
-			auto validRace = raceMorphGroups.first;
+		for (const auto& raceRegionNames : Configs::g_regionNamesMap) {
+			auto validRace = raceRegionNames.first;
 
-			if (validRace->faceRelatedData[Sex::kFemale]->facialBoneRegions) {
-				for (auto faceBoneRegion : *validRace->faceRelatedData[Sex::kFemale]->facialBoneRegions) {
-					for (const auto& indexRegionPair : Configs::g_regionNamesMap) {
+			for (std::uint32_t sex = kMale; sex < kTotal; sex++) {
+				if (!validRace->faceRelatedData[sex]->facialBoneRegions)
+					continue;
+
+				for (auto faceBoneRegion : *validRace->faceRelatedData[sex]->facialBoneRegions) {
+					for (const auto& indexRegionPair : raceRegionNames.second) {
 						if (faceBoneRegion->id != indexRegionPair.first)
 							continue;
 
@@ -23,17 +27,28 @@ namespace Races {
 					}
 				}
 			}
+		}
 
-			if (validRace->faceRelatedData[Sex::kFemale]->morphGroups) {
+		for (const auto& raceMorphGroups : Configs::g_raceMorphGroupsMap) {
+			auto validRace = raceMorphGroups.first;
+
+			for (std::uint32_t sex = kMale; sex < kTotal; sex++) {
+				if (!validRace->faceRelatedData[sex]->morphGroups)
+					continue;
+
 				std::uint32_t groupID = 1;
 
 				for (const auto& morphPresets : raceMorphGroups.second) {
-					auto it = Configs::g_regionNamesMap.find(morphPresets.first);
-					if (it == Configs::g_regionNamesMap.end())
+					auto race_it = Configs::g_regionNamesMap.find(validRace);
+					if (race_it == Configs::g_regionNamesMap.end())
 						continue;
 
-					for (auto group : *validRace->faceRelatedData[Sex::kFemale]->morphGroups) {
-						if (group->name != it->second.AssociatedMorphGroupName)
+					auto region_it = race_it->second.find(morphPresets.first);
+					if (region_it == race_it->second.end())
+						continue;
+
+					for (auto group : *validRace->faceRelatedData[sex]->morphGroups) {
+						if (group->name != region_it->second.AssociatedMorphGroupName)
 							continue;
 
 						group->presets.clear();
