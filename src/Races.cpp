@@ -14,6 +14,9 @@ namespace Races {
 			auto validRace = raceRegionNames.first;
 
 			for (std::uint32_t sex = kMale; sex < kTotal; sex++) {
+				if (!validRace->faceRelatedData[sex])
+					continue;
+
 				if (!validRace->faceRelatedData[sex]->facialBoneRegions)
 					continue;
 
@@ -33,7 +36,11 @@ namespace Races {
 			auto validRace = raceMorphGroups.first;
 
 			for (std::uint32_t sex = kMale; sex < kTotal; sex++) {
-				if (!validRace->faceRelatedData[sex]->morphGroups)
+				if (!validRace->faceRelatedData[sex])
+					continue;
+
+				auto morphGroups = validRace->faceRelatedData[sex]->morphGroups;
+				if (!morphGroups)
 					continue;
 
 				std::uint32_t groupID = 1;
@@ -47,7 +54,7 @@ namespace Races {
 					if (region_it == race_it->second.end())
 						continue;
 
-					for (auto group : *validRace->faceRelatedData[sex]->morphGroups) {
+					for (auto group : *morphGroups) {
 						if (group->name != region_it->second.AssociatedMorphGroupName)
 							continue;
 
