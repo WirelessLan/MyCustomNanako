@@ -133,19 +133,14 @@ namespace HeadParts {
 			return;
 		}
 
-		std::set<RE::BGSHeadPart*> remTargetSet;
-		auto it = Configs::g_headPartMap.find(a_regionIndex);
-		if (it != Configs::g_headPartMap.end()) {
+		auto headPartMapIt = Configs::g_headPartMap.find(a_regionIndex);
+		if (headPartMapIt != Configs::g_headPartMap.end()) {
 			for (std::size_t ii = 0; ii < npc->numHeadParts; ii++) {
-				auto rem_iter = it->second.find(npc->headParts[ii]);
-				if (rem_iter != it->second.end()) {
-					remTargetSet.insert(npc->headParts[ii]);
+				auto& headPart = npc->headParts[ii];
+				if (headPartMapIt->second.find(headPart) != headPartMapIt->second.end()) {
+					HeadParts::RemoveHeadPart(npc, headPart);
 				}
 			}
-		}
-
-		for (auto const& headPart : remTargetSet) {
-			HeadParts::RemoveHeadPart(npc, headPart);
 		}
 
 		for (auto const& headPart : g_originalHDPTSet) {
