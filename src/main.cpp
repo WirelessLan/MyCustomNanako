@@ -62,8 +62,9 @@ extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface * a_
 	Hooks::Install();
 
 	const F4SE::MessagingInterface* message = F4SE::GetMessagingInterface();
-	if (message)
+	if (message) {
 		message->RegisterListener(OnF4SEMessage);
+	}
 
 	return true;
 }

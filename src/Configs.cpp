@@ -14,9 +14,7 @@ namespace Configs {
 	std::map<std::uint32_t, std::set<RE::BGSHeadPart*>> g_headPartMap;
 
 	std::uint8_t GetChar(const std::string& a_line, std::uint32_t& a_index) {
-		if (a_index < a_line.length())
-			return a_line[a_index++];
-		return 0xFF;
+		return a_index < a_line.length() ? a_line[a_index++] : 0xFF;
 	}
 
 	std::string GetNextData(const std::string& a_line, std::uint32_t& a_index, char a_delimeter) {
@@ -25,13 +23,16 @@ namespace Configs {
 
 		while ((ch = GetChar(a_line, a_index)) != 0xFF) {
 			if (ch == '#') {
-				if (a_index > 0)
+				if (a_index > 0) {
 					a_index--;
+				}
+
 				break;
 			}
 
-			if (a_delimeter != 0 && ch == a_delimeter)
+			if (a_delimeter != 0 && ch == a_delimeter) {
 				break;
+			}
 
 			retVal += ch;
 		}
@@ -48,9 +49,7 @@ namespace Configs {
 	}
 
 	bool EmptyOrComment(const std::string& a_line) {
-		if (a_line.empty() || a_line[0] == '#')
-			return true;
-		return false;
+		return a_line.empty() || a_line[0] == '#';
 	}
 
 	void ReadRegionNamesConfig() {
@@ -63,18 +62,20 @@ namespace Configs {
 		const std::filesystem::directory_iterator dir_iter(g_regionNamesConfigPath);
 
 		for (auto& iter : dir_iter) {
-			if (!std::filesystem::is_regular_file(iter.status()))
+			if (!std::filesystem::is_regular_file(iter.status())) {
 				continue;
+			}
 
-			if (!std::regex_match(iter.path().filename().string(), filter))
+			if (!std::regex_match(iter.path().filename().string(), filter)) {
 				continue;
+			}
 
 			std::string filePath = iter.path().string();
 
 			std::ifstream file{ filePath };
 			if (!file.is_open()) {
 				logger::error("Cannot read the config file: {}", filePath);
-				return;
+				continue;
 			}
 
 			logger::info("Reading the config file: {}", filePath);
@@ -85,8 +86,9 @@ namespace Configs {
 			while (GetLine(file, line)) {
 				lineNum++;
 
-				if (EmptyOrComment(line))
+				if (EmptyOrComment(line)) {
 					continue;
+				}
 
 				std::uint32_t lineIndex = 0;
 				std::string facialBoneRegionIndexStr, raceStr, morphGroupName, newGroupName;
@@ -155,18 +157,20 @@ namespace Configs {
 		const std::filesystem::directory_iterator dir_iter(g_morphGroupsConfigPath);
 
 		for (auto& iter : dir_iter) {
-			if (!std::filesystem::is_regular_file(iter.status()))
+			if (!std::filesystem::is_regular_file(iter.status())) {
 				continue;
+			}
 
-			if (!std::regex_match(iter.path().filename().string(), filter))
+			if (!std::regex_match(iter.path().filename().string(), filter)) {
 				continue;
+			}
 
 			std::string filePath = iter.path().string();
 
 			std::ifstream file{ filePath };
 			if (!file.is_open()) {
 				logger::error("Cannot read the config file: {}", filePath);
-				return;
+				continue;
 			}
 
 			logger::info("Reading the config file: {}", filePath);
@@ -177,8 +181,9 @@ namespace Configs {
 			while (GetLine(file, line)) {
 				lineNum++;
 
-				if (EmptyOrComment(line))
+				if (EmptyOrComment(line)) {
 					continue;
+				}
 
 				std::uint32_t lineIndex = 0;
 				std::string facialBoneRegionIndexStr, raceStr, morphPresetName, headPartListStart;
@@ -192,6 +197,7 @@ namespace Configs {
 				raceStr = GetNextData(line, lineIndex, ',');
 				if (raceStr.empty()) {
 					logger::error("Line {}: Cannot read the Race: {}", lineNum, line);
+					continue;
 				}
 
 				morphPresetName = GetNextData(line, lineIndex, ',');
@@ -231,14 +237,16 @@ namespace Configs {
 				while (GetLine(file, line)) {
 					lineNum++;
 
-					if (EmptyOrComment(line))
+					if (EmptyOrComment(line)) {
 						continue;
+					}
 
 					lineIndex = 0;
 
 					std::string data = GetNextData(line, lineIndex, 0);
-					if (data == "]")
+					if (data == "]") {
 						break;
+					}
 
 					RE::TESForm* headPartForm = Utils::GetFormFromString(data);
 					if (!headPartForm) {
@@ -259,14 +267,16 @@ namespace Configs {
 
 				MorphPreset newPreset{};
 				newPreset.Name = morphPresetName;
-				for (auto headPart : headPartList)
+				for (auto headPart : headPartList) {
 					newPreset.HeadPartSet.insert(headPart);
+				}
 
 				morphList.push_back(newPreset);
 
 				auto& regionHeadPartSet = g_headPartMap[facialBoneRegionIndex];
-				for (auto headPart : headPartList)
+				for (auto headPart : headPartList) {
 					regionHeadPartSet.insert(headPart);
+				}
 			}
 		}
 	}

@@ -37,29 +37,37 @@ namespace HeadParts {
 
 	std::set<RE::BGSHeadPart*> GetHeadParts(RE::TESRace* a_race, std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
 		auto race_it = Configs::g_raceMorphGroupsMap.find(a_race);
-		if (race_it == Configs::g_raceMorphGroupsMap.end())
+		if (race_it == Configs::g_raceMorphGroupsMap.end()) {
 			return std::set<RE::BGSHeadPart*>();
+		}
 
 		auto region_it = race_it->second.find(a_regionIndex);
-		if (region_it == race_it->second.end())
+		if (region_it == race_it->second.end()) {
 			return std::set<RE::BGSHeadPart*>();
+		}
+
+		auto& presets = region_it->second;
+		if (a_selectedIndex >= presets.size()) {
+			return std::set<RE::BGSHeadPart*>();
+		}
 
 		return region_it->second[a_selectedIndex].HeadPartSet;
 	}
 
 	void AddHeadPart(RE::TESNPC* a_npc, RE::BGSHeadPart* a_hdpt) {
-		if (!a_npc || !a_hdpt)
+		if (!a_npc || !a_hdpt) {
 			return;
+		}
 
 		using func_t = void(*)(RE::TESNPC*, RE::BGSHeadPart*, std::uint32_t, std::uint32_t);
 		const REL::Relocation<func_t> func{ REL::ID(735660) };
 		func(a_npc, a_hdpt, 1, false);
-
 	}
 
 	void RemoveHeadPart(RE::TESNPC* a_npc, RE::BGSHeadPart* a_hdpt) {
-		if (!a_npc || !a_hdpt)
+		if (!a_npc || !a_hdpt) {
 			return;
+		}
 
 		using func_t = void(*)(RE::TESNPC*, RE::BGSHeadPart*, bool);
 		const REL::Relocation<func_t> func{ REL::ID(880456) };
@@ -68,74 +76,81 @@ namespace HeadParts {
 
 	void ChangeHeadPart(std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
 		CharacterCreation* g_characterCreation = CharacterCreation::GetSingleton();
-		if (!g_characterCreation)
+		if (!g_characterCreation) {
 			return;
+		}
 
 		RE::TESNPC* npc = g_characterCreation->npc;
-		if (!npc)
+		if (!npc) {
 			return;
+		}
 
 		std::set<RE::BGSHeadPart*> headParts = HeadParts::GetHeadParts(npc->formRace, a_regionIndex, a_selectedIndex);
-		if (headParts.empty())
+		if (headParts.empty()) {
 			return;
+		}
 
 		std::set<RE::BGSHeadPart*> remTargetSet;
 		auto it = Configs::g_headPartMap.find(a_regionIndex);
 		if (it != Configs::g_headPartMap.end()) {
 			for (std::size_t ii = 0; ii < npc->numHeadParts; ii++) {
 				auto rem_iter = it->second.find(npc->headParts[ii]);
-				if (rem_iter == it->second.end())
+				if (rem_iter == it->second.end()) {
 					continue;
+				}
 
 				remTargetSet.insert(npc->headParts[ii]);
 			}
 		}
 
-		bool originSet = false;
-		if (!g_originalHDPTSet.empty())
-			originSet = true;
+		if (g_originalHDPTSet.empty()) {
+			g_originalHDPTSet.insert(remTargetSet.begin(), remTargetSet.end());
+		}
 
 		for (const auto& headPart : remTargetSet) {
-			if (!originSet)
-				g_originalHDPTSet.insert(headPart);
 			HeadParts::RemoveHeadPart(npc, headPart);
 		}
 
-		for (const auto& headPart : headParts)
+		for (const auto& headPart : headParts) {
 			HeadParts::AddHeadPart(npc, headPart);
+		}
 
 		g_characterCreation->dirty = 1;
 	}
 
 	void RestoreHeadType(std::uint32_t a_regionIndex) {
-		CharacterCreation* g_characterCreation = CharacterCreation::GetSingleton();
-		if (!g_characterCreation)
+		if (g_originalHDPTSet.empty()) {
 			return;
+		}
+
+		CharacterCreation* g_characterCreation = CharacterCreation::GetSingleton();
+		if (!g_characterCreation) {
+			return;
+		}
 
 		RE::TESNPC* npc = g_characterCreation->npc;
-		if (!npc)
+		if (!npc) {
 			return;
-
-		if (g_originalHDPTSet.empty())
-			return;
+		}
 
 		std::set<RE::BGSHeadPart*> remTargetSet;
 		auto it = Configs::g_headPartMap.find(a_regionIndex);
 		if (it != Configs::g_headPartMap.end()) {
 			for (std::size_t ii = 0; ii < npc->numHeadParts; ii++) {
 				auto rem_iter = it->second.find(npc->headParts[ii]);
-				if (rem_iter == it->second.end())
-					continue;
-
-				remTargetSet.insert(npc->headParts[ii]);
+				if (rem_iter != it->second.end()) {
+					remTargetSet.insert(npc->headParts[ii]);
+				}
 			}
 		}
 
-		for (auto const& headPart : remTargetSet)
+		for (auto const& headPart : remTargetSet) {
 			HeadParts::RemoveHeadPart(npc, headPart);
+		}
 
-		for (auto const& headPart : g_originalHDPTSet)
+		for (auto const& headPart : g_originalHDPTSet) {
 			HeadParts::AddHeadPart(npc, headPart);
+		}
 
 		g_characterCreation->dirty = 1;
 
