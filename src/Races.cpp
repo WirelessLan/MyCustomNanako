@@ -1,5 +1,7 @@
 #include "Races.h"
 
+#include <set>
+
 #include "Configs.h"
 
 namespace Races {
@@ -27,7 +29,34 @@ namespace Races {
 		}
 	}
 
+	std::uint32_t GetUniquePresetID(std::set<std::uint32_t>& faceMorphIDSet, std::uint32_t& presetID) {
+		while (faceMorphIDSet.find(presetID) != faceMorphIDSet.end()) {
+			presetID++;
+		}
+		faceMorphIDSet.insert(presetID);
+		return presetID;
+	}
+
 	void UpdateRaceMorphGroupPresets() {
+		std::set<std::uint32_t> faceMorphIDSet;
+		std::uint32_t lastPresetID = 1;
+
+		for (const auto& raceMorphGroups : Configs::g_raceMorphGroupsMap) {
+			auto race = raceMorphGroups.first;
+
+			for (auto sex : { Sex::kMale, Sex::kFemale }) {
+				if (!race->faceRelatedData[sex] || !race->faceRelatedData[sex]->morphGroups) {
+					continue;
+				}
+
+				for (auto group : *race->faceRelatedData[sex]->morphGroups) {
+					for (auto preset : group->presets) {
+						faceMorphIDSet.insert(preset.id);
+					}
+				}
+			}
+		}
+
 		for (const auto& raceMorphGroups : Configs::g_raceMorphGroupsMap) {
 			auto race = raceMorphGroups.first;
 
@@ -40,8 +69,6 @@ namespace Races {
 				if (!race->faceRelatedData[sex] || !race->faceRelatedData[sex]->morphGroups) {
 					continue;
 				}
-
-				std::uint32_t groupID = 1;
 
 				for (const auto& morphPresets : raceMorphGroups.second) {
 					auto regionIt = regionNamesMapIt->second.find(morphPresets.first);
@@ -56,18 +83,14 @@ namespace Races {
 
 						group->presets.clear();
 
-						std::uint32_t presetID = (groupID << 24) + 1;
-
 						for (const auto& morphPreset : morphPresets.second) {
 							RE::BGSCharacterMorph::Preset newPreset{};
-							newPreset.id = presetID++;
+							newPreset.id = GetUniquePresetID(faceMorphIDSet, lastPresetID);
 							newPreset.name = morphPreset.Name;
 							newPreset.flags = 1;
 
 							group->presets.push_back(newPreset);
 						}
-
-						groupID++;
 					}
 				}
 			}

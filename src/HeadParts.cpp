@@ -1,5 +1,7 @@
 #include "HeadParts.h"
 
+#include <mutex>
+
 #include "Configs.h"
 
 namespace HeadParts {
@@ -33,7 +35,9 @@ namespace HeadParts {
 		}
 	};
 
-	std::set<RE::BGSHeadPart*> g_originalHDPTSet;
+
+	std::mutex g_headPartMutex;
+	std::set<RE::BGSHeadPart*> g_prevHeadPartSet;
 
 	std::set<RE::BGSHeadPart*> GetHeadParts(RE::TESRace* a_race, std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
 		auto race_it = Configs::g_raceMorphGroupsMap.find(a_race);
@@ -75,6 +79,8 @@ namespace HeadParts {
 	}
 
 	void ChangeHeadPart(std::uint32_t a_regionIndex, std::uint32_t a_selectedIndex) {
+		std::lock_guard<std::mutex> lock(g_headPartMutex);
+
 		CharacterCreation* g_characterCreation = CharacterCreation::GetSingleton();
 		if (!g_characterCreation) {
 			return;
@@ -90,28 +96,33 @@ namespace HeadParts {
 			return;
 		}
 
-		std::set<RE::BGSHeadPart*> remTargetSet;
-		auto it = Configs::g_headPartMap.find(a_regionIndex);
-		if (it != Configs::g_headPartMap.end()) {
+		std::vector<RE::BGSHeadPart*> headPartsToRemove;
+		bool prevHeadPartsSetExists = !g_prevHeadPartSet.empty();
+
+		auto headPartMapIt = Configs::g_headPartMap.find(a_regionIndex);
+		if (headPartMapIt != Configs::g_headPartMap.end()) {
+			const auto& headPartSet = headPartMapIt->second;
+
 			for (std::size_t ii = 0; ii < npc->numHeadParts; ii++) {
-				auto rem_iter = it->second.find(npc->headParts[ii]);
-				if (rem_iter == it->second.end()) {
+				RE::BGSHeadPart* headPart = npc->headParts[ii];
+
+				if (headPartSet.find(headPart) == headPartSet.end()) {
 					continue;
 				}
 
-				remTargetSet.insert(npc->headParts[ii]);
+				if (!prevHeadPartsSetExists) {
+					g_prevHeadPartSet.insert(headPart);
+				}
+
+				headPartsToRemove.push_back(headPart);
 			}
 		}
 
-		if (g_originalHDPTSet.empty()) {
-			g_originalHDPTSet.insert(remTargetSet.begin(), remTargetSet.end());
-		}
-
-		for (const auto& headPart : remTargetSet) {
+		for (auto headPart : headPartsToRemove) {
 			HeadParts::RemoveHeadPart(npc, headPart);
 		}
 
-		for (const auto& headPart : headParts) {
+		for (auto headPart : headParts) {
 			HeadParts::AddHeadPart(npc, headPart);
 		}
 
@@ -119,9 +130,7 @@ namespace HeadParts {
 	}
 
 	void RestoreHeadType(std::uint32_t a_regionIndex) {
-		if (g_originalHDPTSet.empty()) {
-			return;
-		}
+		std::lock_guard<std::mutex> lock(g_headPartMutex);
 
 		CharacterCreation* g_characterCreation = CharacterCreation::GetSingleton();
 		if (!g_characterCreation) {
@@ -133,26 +142,40 @@ namespace HeadParts {
 			return;
 		}
 
+		if (g_prevHeadPartSet.empty()) {
+			return;
+		}
+
+		std::vector<RE::BGSHeadPart*> headPartsToRemove;
+
 		auto headPartMapIt = Configs::g_headPartMap.find(a_regionIndex);
 		if (headPartMapIt != Configs::g_headPartMap.end()) {
+			const auto& headPartSet = headPartMapIt->second;
+
 			for (std::size_t ii = 0; ii < npc->numHeadParts; ii++) {
-				auto& headPart = npc->headParts[ii];
-				if (headPartMapIt->second.find(headPart) != headPartMapIt->second.end()) {
-					HeadParts::RemoveHeadPart(npc, headPart);
+				RE::BGSHeadPart* headPart = npc->headParts[ii];
+
+				if (headPartSet.find(headPart) == headPartSet.end()) {
+					continue;
 				}
+
+				headPartsToRemove.push_back(headPart);
 			}
 		}
 
-		for (auto const& headPart : g_originalHDPTSet) {
-			HeadParts::AddHeadPart(npc, headPart);
+		for (auto headPart : headPartsToRemove) {
+			HeadParts::RemoveHeadPart(npc, headPart);
 		}
 
-		g_characterCreation->dirty = 1;
+		for (auto headPart : g_prevHeadPartSet) {
+			HeadParts::AddHeadPart(npc, headPart);
+		}
+		g_prevHeadPartSet.clear();
 
-		g_originalHDPTSet.clear();
+		g_characterCreation->dirty = 1;
 	}
 
 	void ClearHeadPartSet() {
-		g_originalHDPTSet.clear();
+		g_prevHeadPartSet.clear();
 	}
 }

@@ -27,7 +27,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE 
 
 project(
 	MyCustomNanako
-	VERSION 1.4.4
+	VERSION 1.4.5
 	LANGUAGES CXX
 )
 
