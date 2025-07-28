@@ -63,9 +63,9 @@ namespace HeadParts {
 			return;
 		}
 
-		using func_t = void(*)(RE::TESNPC*, RE::BGSHeadPart*, std::uint32_t, std::uint32_t);
+		using func_t = void(*)(RE::TESNPC*, RE::BGSHeadPart*, bool, bool, bool);
 		const REL::Relocation<func_t> func{ REL::ID(735660) };
-		func(a_npc, a_hdpt, 1, false);
+		func(a_npc, a_hdpt, true, false, true);
 	}
 
 	void RemoveHeadPart(RE::TESNPC* a_npc, RE::BGSHeadPart* a_hdpt) {

@@ -1,6 +1,6 @@
 {
   "name": "mycustomnanako",
-  "version-string": "1.4.5",
+  "version-string": "1.4.6",
   "license": "MIT",
   "dependencies": [
     "boost-stl-interfaces",
